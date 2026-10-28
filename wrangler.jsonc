@@ -1,0 +1,34 @@
+// Cloudflare Workers deployment for SG16 Identifier (OpenNext adapter).
+// Build: npm run build:worker   Local Workers preview: npm run preview   Deploy: npm run deploy
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "sg16-identifier",
+	"main": ".open-next/worker.js",
+	// workerd 1.20261023 is installed; newer dates need a newer Wrangler.
+	"compatibility_date": "2026-10-23",
+	// nodejs_compat provides the Node APIs the app uses (crypto, dns, net, tls, Buffer)
+	// and lets `pg` reach PostgreSQL over TCP.
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			// Self-reference required by OpenNext; must match "name" above.
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "sg16-identifier"
+		}
+	],
+	// next/image optimisation (header logo, Robo Manager). Without this binding
+	// Cloudflare serves the 1.4 MB and 2.1 MB originals.
+	"images": {
+		"binding": "IMAGES"
+	},
+	"observability": {
+		"enabled": true
+	}
+	// Secrets (DATABASE_URL, ADMIN_ACCESS_CODE, provider API keys) are set with
+	// `npx wrangler secret put <NAME>`, never written here. Plain settings from
+	// .env.example can go in a "vars" block.
+}

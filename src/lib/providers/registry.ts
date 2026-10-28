@@ -1,0 +1,172 @@
+import { db } from "@/db";
+import { providerUsage } from "@/db/schema";
+import type { ProviderCall } from "@/lib/types";
+import { newId, round } from "@/lib/utils";
+import { recordSpend } from "@/lib/security/rate-limit";
+
+/**
+ * Provider registry.
+ *
+ * Every external source is an adapter behind this registry so a provider can be
+ * replaced without touching the verification modules. Secrets are read only on
+ * the server, and every call is metered for cost + latency (blueprint §5, §9).
+ */
+
+export interface ProviderConfig {
+  id: string;
+  label: string;
+  purpose: string;
+  enabled: boolean;
+  reason?: string;
+  costPerCallUsd: number;
+  docsUrl?: string;
+}
+
+function envFlag(name: string, fallback = true): boolean {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
+}
+
+export function getProviderConfigs(): ProviderConfig[] {
+  const factCheckKey = process.env.GOOGLE_FACTCHECK_API_KEY;
+  const webRiskKey = process.env.WEB_RISK_API_KEY ?? process.env.SAFE_BROWSING_API_KEY;
+  const aiKey = process.env.OPENAI_API_KEY ?? process.env.SG16_AI_API_KEY;
+  const searchKey = process.env.TAVILY_API_KEY ?? process.env.SERPER_API_KEY ?? process.env.BING_SEARCH_KEY;
+
+  return [
+    {
+      id: "heuristics",
+      label: "SG16 rules engine",
+      purpose: "Checksums, identifier normalisation, lexicons, pattern rules. Runs locally, always available, zero marginal cost.",
+      enabled: true,
+      costPerCallUsd: 0,
+    },
+    {
+      id: "domain-intel",
+      label: "Domain & DNS intelligence",
+      purpose: "SOA, NS, MX, TXT/SPF/DMARC, CNAME, TLS certificate age and issuer, redirect chain.",
+      enabled: envFlag("SG16_ENABLE_DNS", true),
+      costPerCallUsd: 0,
+      docsUrl: "https://datatracker.ietf.org/doc/html/rfc1035",
+    },
+    {
+      id: "catalog",
+      label: "Internal product catalogue",
+      purpose: "Normalised brand/model records with specification ranges and known counterfeit signals.",
+      enabled: true,
+      costPerCallUsd: 0,
+    },
+    {
+      id: "google-factcheck",
+      label: "Google Fact Check Tools API",
+      purpose: "Retrieves existing claim reviews published by fact-checking organisations.",
+      enabled: Boolean(factCheckKey),
+      reason: factCheckKey ? undefined : "GOOGLE_FACTCHECK_API_KEY not configured",
+      costPerCallUsd: 0,
+      docsUrl: "https://developers.google.com/fact-check/tools-api",
+    },
+    {
+      id: "web-risk",
+      label: "Google Web Risk / Safe Browsing",
+      purpose: "Commercial malicious-URL lookup (phishing, malware, unwanted software).",
+      enabled: Boolean(webRiskKey),
+      reason: webRiskKey ? undefined : "WEB_RISK_API_KEY not configured",
+      costPerCallUsd: 0.005,
+      docsUrl: "https://cloud.google.com/web-risk/pricing",
+    },
+    {
+      id: "ai-analysis",
+      label: "AI claim extraction & reasoning",
+      purpose: "Splits text into atomic claims, compares retrieved evidence, drafts the human summary.",
+      enabled: Boolean(aiKey),
+      reason: aiKey ? undefined : "OPENAI_API_KEY not configured",
+      costPerCallUsd: 0.0006,
+      docsUrl: "https://openai.com/api/pricing/",
+    },
+    {
+      id: "web-search",
+      label: "Licensed web search",
+      purpose: "Discovers primary sources, official announcements and corroborating reporting.",
+      enabled: Boolean(searchKey),
+      reason: searchKey ? undefined : "No search API key configured (TAVILY_API_KEY / SERPER_API_KEY)",
+      costPerCallUsd: 0.004,
+      docsUrl: "https://developers.google.com/custom-search/v1/overview",
+    },
+  ];
+}
+
+export function providerEnabled(id: string): boolean {
+  return getProviderConfigs().find((p) => p.id === id)?.enabled ?? false;
+}
+
+export function providerCost(id: string): number {
+  return getProviderConfigs().find((p) => p.id === id)?.costPerCallUsd ?? 0;
+}
+
+export interface TimedResult<T> {
+  data: T;
+  call: ProviderCall;
+}
+
+export async function meter<T>(
+  provider: string,
+  operation: string,
+  fn: () => Promise<T>,
+  options: { reportId?: string; costOverride?: number; detail?: string } = {},
+): Promise<TimedResult<T>> {
+  const started = Date.now();
+  try {
+    const data = await fn();
+    const call: ProviderCall = {
+      provider,
+      operation,
+      status: "ok",
+      latencyMs: Date.now() - started,
+      costUsd: options.costOverride ?? providerCost(provider),
+      detail: options.detail,
+    };
+    await persistUsage(call, options.reportId);
+    return { data, call };
+  } catch (error) {
+    const call: ProviderCall = {
+      provider,
+      operation,
+      status: "error",
+      latencyMs: Date.now() - started,
+      costUsd: 0,
+      error: (error as Error).message ?? String(error),
+      detail: options.detail,
+    };
+    await persistUsage(call, options.reportId);
+    throw error;
+  }
+}
+
+export function skipped(provider: string, operation: string, detail: string): ProviderCall {
+  return { provider, operation, status: "skipped", latencyMs: 0, costUsd: 0, detail };
+}
+
+export function disabled(provider: string, operation: string, detail: string): ProviderCall {
+  return { provider, operation, status: "disabled", latencyMs: 0, costUsd: 0, detail };
+}
+
+async function persistUsage(call: ProviderCall, reportId?: string) {
+  recordSpend(call.costUsd);
+  try {
+    await db.insert(providerUsage).values({
+      id: newId(),
+      reportId: reportId ?? null,
+      provider: call.provider,
+      operation: call.operation,
+      status: call.status === "ok" ? "ok" : call.status,
+      latencyMs: call.latencyMs,
+      tokensIn: call.tokensIn ?? null,
+      tokensOut: call.tokensOut ?? null,
+      costUsd: round(call.costUsd, 6),
+      error: call.error ?? null,
+    });
+  } catch {
+    // usage logging must never break a verification
+  }
+}

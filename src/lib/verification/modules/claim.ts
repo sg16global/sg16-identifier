@@ -1,11 +1,14 @@
 import type { EvidenceSource, ProviderCall, ReportFinding } from "@/lib/types";
 import { aiStructured } from "@/lib/providers/ai";
+import { probeHttp } from "@/lib/providers/risk";
 import {
   factChecksToEvidence,
   fetchFactChecks,
   searchResultsToEvidence,
   searchWeb,
+  trustTierFor,
 } from "@/lib/providers/research";
+import { parseUntrustedUrl } from "@/lib/security/url-guard";
 import { CLAIM_HEDGES, OUT_OF_CONTEXT_SIGNALS } from "@/lib/verification/lexicon";
 import {
   StepTimer,
@@ -132,6 +135,62 @@ export async function verifyClaim(input: ModuleInput): Promise<ModuleOutput> {
     return hits.length ? "done" : call.status === "disabled" ? "skipped" : "done";
   });
 
+  let directFetch: { url: string; status?: number; title?: string } | null = null;
+
+  await timer.run("Fetch the submitted link", "Retrieve the linked page itself through the SSRF guard, so the claim can be compared with its primary source even without a search API key.", async () => {
+    const target = input.classification.urls[0];
+    if (!target) return "skipped";
+    if (!input.flags.outboundFetchEnabled) {
+      providers.push({ provider: "http-probe", operation: "safeFetch", status: "disabled", latencyMs: 0, costUsd: 0, detail: "Outbound fetching of user-submitted URLs is disabled." });
+      limitations.push(LIMITATION_LIBRARY.noFetch);
+      return "skipped";
+    }
+    const parsed = parseUntrustedUrl(target);
+    if (!parsed.ok || !parsed.url) {
+      findings.push(makeFinding("fetch", "Linked URL rejected by the SSRF guard",
+        `${parsed.reason ?? "Invalid URL"} — the target was not fetched.`, "risk", 0.8));
+      return "failed";
+    }
+    const { probe, call } = await probeHttp(target, input.reportId);
+    providers.push(call);
+    if (!probe.ok) {
+      findings.push(makeFinding("fetch", "Linked page could not be fetched",
+        `${probe.reason ?? "No response"} — the page behind the link could not be inspected server-side.`, "unknown", 0.3));
+      limitations.push(LIMITATION_LIBRARY.noFetch);
+      return "failed";
+    }
+    directFetch = { url: probe.finalUrl ?? target, status: probe.status, title: probe.titleSnippets[0] };
+    const publisher = probe.siteName ?? (() => { try { return new URL(probe.finalUrl ?? target).hostname; } catch { return target; } })();
+    sources.push({
+      provider: "http-probe",
+      url: probe.finalUrl ?? target,
+      title: probe.titleSnippets[0] ?? "Linked page",
+      publisher,
+      excerpt: [probe.metaDescription, probe.titleSnippets[1]].filter(Boolean).join(" — ").slice(0, 600)
+        || `HTTP ${probe.status} · ${probe.bytes ?? 0} bytes · server: ${probe.server ?? "not disclosed"}`,
+      stance: "context",
+      publishedAt: probe.publishedAt ?? null,
+      retrievedAt: new Date().toISOString(),
+      trustTier: trustTierFor(probe.finalUrl ?? target),
+    });
+    findings.push(makeFinding("fetch", `Linked page retrieved (HTTP ${probe.status})`,
+      `Title: ${truncate(probe.titleSnippets[0] ?? "(none)", 160)}`
+      + (probe.publishedAt ? ` · page date: ${probe.publishedAt.slice(0, 10)}` : "")
+      + (probe.author ? ` · byline: ${truncate(probe.author, 80)}` : "")
+      + (probe.redirectChain.length > 1 ? ` · final URL after ${probe.redirectChain.length - 1} redirect(s): ${truncate(probe.finalUrl ?? "", 120)}` : "")
+      + ". This page is the primary source for the claim; the submitted text was compared against it.",
+      "info", 0.45));
+    if (probe.redirectChain.length > 2) {
+      const finalHost = (() => { try { return new URL(probe.finalUrl ?? "").hostname; } catch { return ""; } })();
+      const startHost = parsed.url.hostname.toLowerCase();
+      if (finalHost && finalHost !== startHost) {
+        findings.push(makeFinding("fetch", "Link redirects to a different host",
+          `The chain starts at ${startHost} and ends at ${finalHost}.`, "warning", 0.3));
+      }
+    }
+    return "done";
+  });
+
   let searchHits = 0;
   let officialHits = 0;
 
@@ -169,6 +228,10 @@ export async function verifyClaim(input: ModuleInput): Promise<ModuleOutput> {
       if (answer) {
         findings.push(makeFinding("sources", "Search provider synthesis", truncate(answer, 500), "info", 0.2));
       }
+    } else if (sources.length) {
+      findings.push(makeFinding("sources", "No licensed search index queried",
+        "No search API key is configured, so coverage beyond the submitted link was not retrieved. The linked page itself was fetched and inspected directly instead.",
+        "unknown", 0.3));
     } else {
       limitations.push(LIMITATION_LIBRARY.noProviderKey);
       findings.push(makeFinding("sources", "No corroborating sources retrieved",
@@ -263,7 +326,7 @@ export async function verifyClaim(input: ModuleInput): Promise<ModuleOutput> {
   const summary = [
     headline + ".",
     scored.explanation,
-    factCheckHits ? `${factCheckHits} published claim review(s) and ${searchHits} retrieved source(s) were examined.` : `No published claim review matched; ${searchHits} source(s) were retrieved.`,
+    factCheckHits ? `${factCheckHits} published claim review(s) and ${sources.length} retrieved source(s) were examined.` : `No published claim review matched; ${sources.length} source(s) were retrieved.`,
     aiNote,
   ].filter(Boolean).join(" ");
 
@@ -293,6 +356,7 @@ export async function verifyClaim(input: ModuleInput): Promise<ModuleOutput> {
       factCheckHits,
       searchHits,
       officialHits,
+      directFetch,
       supportScore: scored.supportScore,
       riskScore: scored.riskScore,
       aiNote,

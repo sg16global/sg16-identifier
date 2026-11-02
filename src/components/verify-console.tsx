@@ -406,7 +406,7 @@ export function VerifyConsole({
 
       <p className="px-1 text-xs leading-relaxed text-mist-600">
         Mode: <span className="font-mono text-mist-400">{mode === "auto" ? "auto-detect" : CATEGORY_LABEL[mode as VerificationCategory]}</span>.
-        Free checks are limited to 6 per minute per connection to protect the service and the budget.
+        Free checks are limited to 30 per minute per connection; the daily spend budget remains the hard cap.
         Uploaded files are analysed in memory, hashed, and never published.
       </p>
     </div>

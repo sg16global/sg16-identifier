@@ -20,7 +20,7 @@ export interface RateLimitPolicy {
 const GATEWAY_RPM = Number(setting("VITEX_GATEWAY_RPM") ?? "120");
 
 export const POLICIES: Record<string, RateLimitPolicy> = {
-  verify: { windowMs: 60_000, maxRequests: 6 },
+  verify: { windowMs: 60_000, maxRequests: 30 },
   feedback: { windowMs: 60_000, maxRequests: 10 },
   newsletter: { windowMs: 3_600_000, maxRequests: 3 },
   affiliate: { windowMs: 60_000, maxRequests: 30 },

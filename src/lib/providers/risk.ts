@@ -328,6 +328,10 @@ export interface HttpProbe {
   paymentKeywords: string[];
   reason?: string;
   bytes?: number;
+  siteName?: string;
+  metaDescription?: string;
+  publishedAt?: string;
+  author?: string;
 }
 
 const PAYMENT_KEYWORDS = [
@@ -384,6 +388,22 @@ export async function probeHttp(raw: string, reportId?: string): Promise<{ probe
       const lower = text.toLowerCase();
       probe.paymentKeywords = PAYMENT_KEYWORDS.filter((k) => lower.includes(k));
       probe.titleSnippets.push(text.slice(0, 240));
+      // OpenGraph / Dublin Core meta tags — publisher and date of the page itself.
+      const metaTags = [...data.body.matchAll(/<meta\s[^>]*>/gi)].map((m) => m[0]);
+      const meta = (key: string): string | undefined => {
+        for (const tag of metaTags) {
+          const t = tag.toLowerCase();
+          if (!t.includes(`name="${key}"`) && !t.includes(`property="${key}"`) && !t.includes(`name='${key}'`) && !t.includes(`property='${key}'`)) continue;
+          const content = tag.match(/content\s*=\s*"([^"]{0,500})"/i)?.[1] ?? tag.match(/content\s*=\s*'([^']{0,500})'/i)?.[1];
+          const value = content?.replace(/\s+/g, " ").trim();
+          if (value) return value;
+        }
+        return undefined;
+      };
+      probe.siteName = meta("og:site_name") ?? meta("application-name");
+      probe.metaDescription = meta("description") ?? meta("og:description") ?? meta("twitter:description");
+      probe.publishedAt = meta("article:published_time") ?? meta("datepublished") ?? meta("date") ?? meta("dc.date");
+      probe.author = meta("author") ?? meta("article:author");
     }
     return { probe, call: { provider: "http-probe", operation: "safeFetch", status: data.ok ? "ok" : "error", latencyMs: 0, costUsd: 0, detail: data.reason } };
   } catch (error) {

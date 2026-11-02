@@ -17,7 +17,7 @@ import { setting } from "@/lib/settings";
 // No default code, ever: without the ADMIN_ACCESS_CODE secret the console is
 // closed to everyone. A default would be public (this repo is on GitHub).
 
-// The console runs without Postgres: auth, code rotation and the budget live
+// The console runs without D1: auth, code rotation and the budget live
 // in the GUARD Durable Object. Only the report/queue tables need the database,
 // so those degrade to empty instead of taking the whole console down with a 500.
 function degradedStats() {

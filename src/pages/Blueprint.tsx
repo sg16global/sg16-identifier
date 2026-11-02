@@ -278,7 +278,7 @@ export default function BlueprintPage() {
                     {[
                       ["Frontend", "Vite + React 19 + React Router + TypeScript", "Single-page app; the Worker writes each page's title and description"],
                       ["UI", "Tailwind CSS v4 + accessible primitives", "Consistent design system and rapid development"],
-                      ["Database", "Managed PostgreSQL", "Reports, evidence, catalogue, usage and audit"],
+                      ["Database", "Cloudflare D1 (SQLite)", "Reports, evidence, catalogue, usage and audit"],
                       ["Authentication", "Managed provider, optional", "Sign-in and secure account management when enabled"],
                       ["Background jobs", "Managed queue or worker", "Longer research, image processing and retries"],
                       ["Cache", "Managed Redis, added when needed", "Deduplicate requests and reduce repeated API cost"],
@@ -384,7 +384,7 @@ export default function BlueprintPage() {
 
             {/* 07 */}
             <Doc id="database" n="07" title="Database design">
-              <p>Start with PostgreSQL and a small, well-defined schema. Do not create dozens of tables before they are needed.</p>
+              <p>Start with D1 (SQLite) and a small, well-defined schema. Do not create dozens of tables before they are needed.</p>
               <div className="mt-6 overflow-hidden rounded-sm border border-mist-500/15">
                 <table className="w-full text-left">
                   <thead className="border-b border-mist-500/15 bg-ink-900/60">
@@ -552,7 +552,7 @@ export default function BlueprintPage() {
               <div className="mt-2 space-y-3">
                 {[
                   ["Phase 0", "Week 1", "Planning and validation", ["Confirm the initial service scope", "Create the UI design system and page map", "Set up the repository, environment and provider shortlist", "Define the evidence schema, privacy requirements and spending limits"], "Approved specification and a tested technical plan."],
-                  ["Phase 1", "Weeks 2–4", "Working MVP", ["Build the homepage, universal input and report UI", "Implement the backend, PostgreSQL schema and validation", "Integrate fact-check retrieval and safe URL reputation checks", "Add report IDs, citations, usage logging, rate limits and an admin view"], "Real end-to-end checks work with actual provider data; failures are handled safely."],
+                  ["Phase 1", "Weeks 2–4", "Working MVP", ["Build the homepage, universal input and report UI", "Implement the backend, D1 schema and validation", "Integrate fact-check retrieval and safe URL reputation checks", "Add report IDs, citations, usage logging, rate limits and an admin view"], "Real end-to-end checks work with actual provider data; failures are handled safely."],
                   ["Phase 2", "Weeks 5–6", "Private testing", ["Test representative true, false, misleading and unresolved claims", "Test known safe and unsafe URLs through controlled fixtures", "Measure source quality, latency, false positives and per-check cost", "Test mobile layouts, accessibility, security controls and deletion flows"], "The system meets predefined quality and safety thresholds."],
                   ["Phase 3", "Weeks 7–8", "Public launch", ["Connect sg16identifier.com and enforce HTTPS", "Publish privacy, terms, limitations and correction policies", "Add monitoring, backups, support contact and incident procedures", "Release with transparent limitations and measured request quotas"], "Production health checks pass, costs are bounded, users can report problems."],
                   ["Phase 4", "After launch", "Expansion and revenue", ["Add product catalogues and manufacturer integrations", "Introduce media provenance and image analysis", "Publish original editorial pages and test advertising eligibility", "Pilot business accounts and a metered API"], "Each expansion has measurable user value, reliable data sources and sustainable unit economics."],

@@ -181,9 +181,9 @@ export async function verifyProduct(input: ModuleInput): Promise<ModuleOutput> {
     const { entries, fromDb } = await loadCatalog();
     ctx.catalogFromDb = fromDb;
     providers.push({
-      provider: "catalog", operation: fromDb ? "postgres:product_catalog" : "bundled-seed",
+      provider: "catalog", operation: fromDb ? "d1:product_catalog" : "bundled-seed",
       status: "ok", latencyMs: 0, costUsd: 0,
-      detail: `${entries.length} catalogue records loaded from ${fromDb ? "PostgreSQL" : "the bundled starter dataset"}.`,
+      detail: `${entries.length} catalogue records loaded from ${fromDb ? "D1" : "the bundled starter dataset"}.`,
     });
     const query = [ctx.model ?? "", ctx.barcode?.value ?? "", text].filter(Boolean).join(" ");
     ctx.alternatives = matchCatalog(query, entries, 4);

@@ -171,7 +171,7 @@ const SECURITY = [
 
 const COST_ROWS = [
   ["Hosting & application compute", "$0 – $30", "Usage-based app host, edge cache included."],
-  ["Database & file storage", "$0 – $30", "Managed PostgreSQL free allowance, then usage."],
+  ["Database & file storage", "$0 – $30", "Cloudflare D1 included with Workers, then usage."],
   ["AI analysis", "$10 – $100", "Routine extraction on a low-cost model, escalation only when justified."],
   ["Search & specialist APIs", "$0 – $100", "Fact-check tools free tier, commercial URL risk and licensed search."],
   ["Monitoring, email & misc", "$0 – $30", "Error tracking, transactional mail, alerting."],
@@ -186,7 +186,7 @@ const REVENUE = [
 
 const ROADMAP = [
   { phase: "Phase 0", window: "Week 1", title: "Planning & validation", items: ["Confirm initial service scope", "UI system and page map", "Repository, environment, provider shortlist", "Evidence schema, privacy and spend limits"], exit: "Approved specification and a tested technical plan." },
-  { phase: "Phase 1", window: "Weeks 2–4", title: "Working MVP", items: ["Homepage, universal input, report UI", "Backend, PostgreSQL schema, validation", "Fact-check retrieval and safe URL reputation", "Report IDs, citations, usage logging, admin view"], exit: "Real end-to-end checks against live provider data." },
+  { phase: "Phase 1", window: "Weeks 2–4", title: "Working MVP", items: ["Homepage, universal input, report UI", "Backend, D1 schema, validation", "Fact-check retrieval and safe URL reputation", "Report IDs, citations, usage logging, admin view"], exit: "Real end-to-end checks against live provider data." },
   { phase: "Phase 2", window: "Weeks 5–6", title: "Private testing", items: ["True, false, misleading and unresolved fixtures", "Known safe and unsafe URLs", "Latency, false positives, per-check cost", "Mobile, accessibility, deletion flows"], exit: "Predefined quality and safety thresholds met." },
   { phase: "Phase 3", window: "Weeks 7–8", title: "Public launch", items: ["Connect sg16identifier.com, enforce HTTPS", "Publish privacy, terms, limitations, corrections", "Monitoring, backups, support contact", "Release with transparent quotas"], exit: "Health checks pass, costs bounded, users can report problems." },
   { phase: "Phase 4", window: "After launch", title: "Expansion & revenue", items: ["Product catalogues and manufacturer integrations", "Media provenance and image analysis", "Original editorial content, advertising eligibility", "Business accounts and a metered API"], exit: "Each expansion has measurable value and sustainable unit economics." },
@@ -238,7 +238,7 @@ const UNREACHABLE: StatsPayload = {
   activeProviders: null,
 };
 
-/** Engine figures read live from PostgreSQL by the Worker; null while the request is in flight. */
+/** Engine figures read live from D1 by the Worker; null while the request is in flight. */
 function useEngineStats(): StatsPayload | null {
   const [payload, setPayload] = useState<StatsPayload | null>(null);
   useEffect(() => {
@@ -346,12 +346,12 @@ export default function HomePage() {
                   <div className="flex items-center justify-between gap-3">
                     <span className="rule-label text-mist-400">SG16 verification engine</span>
                     {!stats ? (
-                      <span className="flex items-center gap-1.5" title="Reading figures from PostgreSQL">
+                      <span className="flex items-center gap-1.5" title="Reading figures from D1">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mist-600" />
                         <span className="font-mono text-[10px] tracking-wider text-mist-500">READING</span>
                       </span>
                     ) : stats.available ? (
-                      <span className="flex items-center gap-1.5" title="Figures read from PostgreSQL on this request">
+                      <span className="flex items-center gap-1.5" title="Figures read from D1 on this request">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ok-400" />
                         <span className="font-mono text-[10px] tracking-wider text-ok-400">LIVE</span>
                       </span>
@@ -698,7 +698,7 @@ export default function HomePage() {
                     { label: "Backend API layer", detail: "Validation · rate limits · API keys · request IDs · budget gate · universal /v1 API", icon: IconLock, tone: "border border-ink-600 bg-ink-900/70", iconTone: "text-mist-300" },
                     { label: "Verification orchestration", detail: "Classify → retrieve evidence → analyse → cross-check → build report", icon: IconCpu, tone: "border border-brand-500/60 bg-brand-500/8", iconTone: "text-brand-400" },
                     { label: "Provider adapters", detail: "Fact check · web risk · search · any AI model or company API · DNS/TLS · internal catalogue", icon: IconLink, tone: "dash-accent bg-ink-950/60", iconTone: "text-brand-400" },
-                    { label: "PostgreSQL + private storage + cache", detail: "Reports · evidence · findings · usage · audit · retention expiry", icon: IconDatabase, tone: "border border-ink-600 bg-ink-900/70", iconTone: "text-mist-300" },
+                    { label: "D1 + private storage + cache", detail: "Reports · evidence · findings · usage · audit · retention expiry", icon: IconDatabase, tone: "border border-ink-600 bg-ink-900/70", iconTone: "text-mist-300" },
                   ].map((layer, i, arr) => (
                     <div key={layer.label}>
                       <div className={`flex items-start gap-4 rounded-sm p-4 ${layer.tone}`}>
@@ -773,7 +773,7 @@ export default function HomePage() {
         <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] [&>*]:min-w-0">
           <Reveal>
             <div className="lg:sticky lg:top-28">
-              <SectionLabel>PostgreSQL schema</SectionLabel>
+              <SectionLabel>D1 schema</SectionLabel>
               <h2 className="mt-4 font-display text-[clamp(1.8rem,3.6vw,2.7rem)] font-semibold leading-[1.06] tracking-tight text-paper-50">
                 Eleven tables. No speculative modelling.
               </h2>

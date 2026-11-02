@@ -391,7 +391,7 @@ export function VerifyConsole({
         {report && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <TonalChip tone="neutral">report saved to postgres</TonalChip>
+              <TonalChip tone="neutral">report saved to d1</TonalChip>
               <Link
                 href={`/report/${report.publicId}`}
                 className="inline-flex items-center gap-2 text-[13px] text-brand-400 underline decoration-brand-500/40 underline-offset-4 hover:decoration-brand-500"

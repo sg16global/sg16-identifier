@@ -27,7 +27,7 @@ export default function AdminPage() {
             </h1>
             <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-mist-400">
               Service health, verdict distribution, metered provider cost, the corrections queue, the
-              audit log and the emergency switches. Everything on this page writes to PostgreSQL and
+              audit log and the emergency switches. Everything on this page writes to D1 and
               every write is logged against an actor.
             </p>
           </Reveal>

@@ -35,7 +35,7 @@ interface CatalogRow {
   specs: unknown;
 }
 
-/** The products module lists the normalised catalogue from PostgreSQL (GET /api/catalog). */
+/** The products module lists the normalised catalogue from D1 (GET /api/catalog). */
 function useCatalog(slug: string): CatalogRow[] {
   const [loaded, setLoaded] = useState<{ slug: string; rows: CatalogRow[] } | null>(null);
   useEffect(() => {
@@ -222,7 +222,7 @@ export default function ModulePage() {
               <div>
                 <SectionLabel>Internal catalogue</SectionLabel>
                 <h2 className="mt-4 font-display text-[clamp(1.7rem,3.2vw,2.5rem)] font-semibold leading-tight tracking-tight text-paper-50">
-                  {catalog.length} normalised product records loaded from PostgreSQL
+                  {catalog.length} normalised product records loaded from D1
                 </h2>
                 <p className="mt-4 max-w-2xl text-[14.5px] leading-relaxed text-mist-500">
                   A starter dataset, not a manufacturer feed. Every matched report links to the

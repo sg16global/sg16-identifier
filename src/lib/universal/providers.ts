@@ -6,7 +6,7 @@ import { setting } from "@/lib/settings";
  * Vitex provider registry — any company's model API, addressed one way.
  *
  * A model is named `<provider>/<model>` (e.g. `anthropic/claude-haiku-5-5`,
- * `workers-ai/@cf/zai-org/glm-4.7-flash`, `acme/risk-large`). Providers
+ * `workers-ai/@cf/meta/llama-4-scout-17b-16e-instruct`, `acme/risk-large`). Providers
  * come from three places:
  *
  *  1. Presets: setting a provider's usual key (ANTHROPIC_API_KEY, GROQ_API_KEY,
@@ -113,8 +113,8 @@ const PRESETS: Preset[] = [
   { id: "openai", label: "OpenAI", protocol: "openai", baseUrl: OPENAI_BASE_URL, keyEnv: ["OPENAI_API_KEY", "SG16_AI_API_KEY"], defaultModel: "gpt-4o-mini", streamUsage: true, docsUrl: "https://openai.com/api/pricing/" },
   { id: "anthropic", label: "Anthropic Claude", protocol: "anthropic", baseUrl: "https://api.anthropic.com/v1", keyEnv: ["ANTHROPIC_API_KEY"], authHeader: "x-api-key", authScheme: "", headers: { "anthropic-version": "2023-06-01" }, defaultModel: "claude-haiku-5-5", docsUrl: "https://platform.claude.com/docs/en/about-claude/pricing" },
   { id: "gemini", label: "Google Gemini", protocol: "gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta", keyEnv: ["GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"], authHeader: "x-goog-api-key", authScheme: "", defaultModel: "gemini-2.5-flash", docsUrl: "https://ai.google.dev/gemini-api/docs/pricing" },
-  // @cf/meta/llama-3.1-8b-instruct was deprecated on 2026-05-30 (Workers AI error 5028); glm-4.7-flash is Cloudflare's recommended replacement.
-  { id: "workers-ai", label: "Cloudflare Workers AI", protocol: "workers-ai", keyEnv: ["CLOUDFLARE_API_TOKEN"], defaultModel: "@cf/zai-org/glm-4.7-flash", docsUrl: "https://developers.cloudflare.com/workers-ai/platform/pricing/" },
+  // @cf/meta/llama-3.1-8b-instruct was deprecated on 2026-05-30 (Workers AI error 5028); llama-4-scout-17b-16e-instruct is a current catalog model.
+  { id: "workers-ai", label: "Cloudflare Workers AI", protocol: "workers-ai", keyEnv: ["CLOUDFLARE_API_TOKEN"], defaultModel: "@cf/meta/llama-4-scout-17b-16e-instruct", docsUrl: "https://developers.cloudflare.com/workers-ai/platform/pricing/" },
   { id: "azure-openai", label: "Azure OpenAI", protocol: "openai", keyEnv: ["AZURE_OPENAI_API_KEY"], authHeader: "api-key", authScheme: "", streamUsage: true },
   { id: "mistral", label: "Mistral AI", protocol: "openai", baseUrl: "https://api.mistral.ai/v1", keyEnv: ["MISTRAL_API_KEY"], defaultModel: "mistral-small-latest" },
   { id: "groq", label: "Groq", protocol: "openai", baseUrl: "https://api.groq.com/openai/v1", keyEnv: ["GROQ_API_KEY"], defaultModel: "llama-3.1-8b-instant", streamUsage: true },
